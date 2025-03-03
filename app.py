@@ -73,7 +73,7 @@ df = fetch_data()
 if not df.empty:
     # Clean and prepare data
     df['feed_won_to_spent_ratio'] = pd.to_numeric(df['feed_won_to_spent_ratio'], errors='coerce')
-    df['contests_participated'] = pd.to_numeric(df['contests_participated'], errors='coerce')
+    df['contests_count_total'] = pd.to_numeric(df['contests_count_total'], errors='coerce')
     df['lineups_count_total'] = pd.to_numeric(df['lineups_count_total'], errors='coerce')
     
     # Calculate rank based on ratio and sort
@@ -81,11 +81,11 @@ if not df.empty:
     df = df.sort_values('feed_won_to_spent_ratio', ascending=False)
     
     # Select and rename columns for display
-    display_cols = ['rank', 'username', 'contests_participated', 'lineups_count_total']
+    display_cols = ['rank', 'username', 'contests_count_total', 'lineups_count_total']
     column_mapping = {
         'rank': 'Rank',
         'username': 'Username',
-        'contests_participated': 'Contests Participated',
+        'contests_count_total': 'Contests Participated',
         'lineups_count_total': 'Lineups Entered'
     }
     
