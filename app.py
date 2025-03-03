@@ -3,35 +3,87 @@ import pandas as pd
 import gspread
 import json
 from google.oauth2 import service_account
+import numpy as np
 
 # Set page title and app styling
 st.set_page_config(page_title="User Leaderboard", layout="wide")
 
-# Custom CSS for better styling
+# Custom CSS for better styling - creating a more game-like leaderboard
 st.markdown("""
 <style>
     .stApp {
-        background: linear-gradient(to bottom, #1e3c72, #2a5298);
+        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
         color: white;
     }
     .leaderboard-title {
         text-align: center;
-        font-size: 3rem;
+        font-size: 3.5rem;
         font-weight: bold;
-        margin-bottom: 30px;
-        color: white;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        margin-bottom: 40px;
+        color: gold;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
     }
-    .stDataFrame {
-        border-radius: 10px;
+    .total-participants {
+        text-align: center; 
+        margin-top: 30px;
+        color: #8ecae6;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    /* Custom styling for the table */
+    [data-testid="stDataFrame"] {
+        background: rgba(13, 27, 42, 0.7);
+        border-radius: 15px;
         overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        padding: 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    [data-testid="stDataFrame"] > div {
+        border: none !important;
+    }
+    /* Style the header row */
+    [data-testid="stDataFrame"] th {
+        background-color: #1d3557 !important;
+        color: white !important;
+        font-weight: bold !important;
+        text-align: center !important;
+        padding: 12px 8px !important;
+        border-bottom: 2px solid #457b9d !important;
+    }
+    /* Style the data cells */
+    [data-testid="stDataFrame"] tbody tr {
+        border-bottom: 1px solid rgba(69, 123, 157, 0.2) !important;
+        transition: background-color 0.2s ease;
+    }
+    [data-testid="stDataFrame"] tbody tr:hover {
+        background-color: rgba(69, 123, 157, 0.2) !important;
+    }
+    /* Top 3 styling */
+    [data-testid="stDataFrame"] tbody tr:nth-child(1) td:first-child {
+        background-color: gold !important;
+        color: black !important;
+        font-weight: bold !important;
+    }
+    [data-testid="stDataFrame"] tbody tr:nth-child(2) td:first-child {
+        background-color: silver !important;
+        color: black !important;
+        font-weight: bold !important;
+    }
+    [data-testid="stDataFrame"] tbody tr:nth-child(3) td:first-child {
+        background-color: #cd7f32 !important;
+        color: black !important;
+        font-weight: bold !important;
+    }
+    /* Center text in cells */
+    [data-testid="stDataFrame"] td {
+        text-align: center !important;
+        padding: 12px 8px !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # Title with custom styling
-st.markdown('<div class="leaderboard-title">🏆 User Leaderboard 🏆</div>', unsafe_allow_html=True)
+st.markdown('<div class="leaderboard-title">🏆 CHAMPIONS LEADERBOARD 🏆</div>', unsafe_allow_html=True)
 
 # Function to fetch data from Google Sheets
 @st.cache_data(ttl=600)  # Cache the data for 10 minutes
@@ -77,45 +129,60 @@ if not df.empty:
     df['lineups_count_total'] = pd.to_numeric(df['lineups_count_total'], errors='coerce')
     
     # Calculate rank based on ratio and sort
-    df['rank'] = df['feed_won_to_spent_ratio'].rank(ascending=False, method='dense')
+    df['rank'] = df['feed_won_to_spent_ratio'].rank(ascending=False, method='dense').astype(int)
     df = df.sort_values('feed_won_to_spent_ratio', ascending=False)
     
+    # Add medal icons for top 3 ranks
+    def format_rank(rank):
+        if rank == 1:
+            return "🥇 1"
+        elif rank == 2:
+            return "🥈 2"
+        elif rank == 3:
+            return "🥉 3"
+        else:
+            return str(rank)
+    
+    df['rank_display'] = df['rank'].apply(format_rank)
+    
     # Select and rename columns for display
-    display_cols = ['rank', 'username', 'contests_count_total', 'lineups_count_total']
+    display_cols = ['rank_display', 'username', 'contests_count_total', 'lineups_count_total']
     column_mapping = {
-        'rank': 'Rank',
+        'rank_display': 'Rank',
         'username': 'Username',
         'contests_count_total': 'Contests Participated',
         'lineups_count_total': 'Lineups Entered'
     }
     
-    # Display the full leaderboard
-    st.dataframe(
-        df[display_cols].rename(columns=column_mapping),
-        column_config={
-            "Rank": st.column_config.NumberColumn(
-                format="%d",
-                help="Position on leaderboard based on ROI"
-            ),
-            "Username": st.column_config.TextColumn(
-                width="medium",
-                help="User's name"
-            ),
-            "Contests Participated": st.column_config.NumberColumn(
-                format="%d",
-                help="Total number of contests entered"
-            ),
-            "Lineups Entered": st.column_config.NumberColumn(
-                format="%d",
-                help="Total number of lineups created"
+    # Add a container with some padding
+    with st.container():
+        # Create three columns with the middle one wider for the dataframe
+        col1, col2, col3 = st.columns([1, 10, 1])
+        
+        with col2:
+            # Display the full leaderboard
+            st.dataframe(
+                df[display_cols].rename(columns=column_mapping),
+                column_config={
+                    "Rank": st.column_config.TextColumn(
+                        width="small",
+                    ),
+                    "Username": st.column_config.TextColumn(
+                        width="medium",
+                    ),
+                    "Contests Participated": st.column_config.NumberColumn(
+                        format="%d",
+                    ),
+                    "Lineups Entered": st.column_config.NumberColumn(
+                        format="%d",
+                    )
+                },
+                use_container_width=True,
+                hide_index=True,
             )
-        },
-        use_container_width=True,
-        hide_index=True,
-    )
     
     # Display total participants
-    st.markdown(f"<h3 style='text-align: center; margin-top: 20px;'>👥 Total Participants: {len(df)}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<div class='total-participants'>👥 Total Champions: {len(df)}</div>", unsafe_allow_html=True)
     
 else:
     st.error("No data loaded. Please check your Google Sheets connection.")
