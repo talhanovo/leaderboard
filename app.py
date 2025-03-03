@@ -83,7 +83,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Title with custom styling
-st.markdown('<div class="leaderboard-title">🏆 CHAMPIONS LEADERBOARD 🏆</div>', unsafe_allow_html=True)
+st.markdown('<div class="leaderboard-title">🏆 UOA LEADERBOARD 🏆</div>', unsafe_allow_html=True)
 
 # Function to fetch data from Google Sheets
 @st.cache_data(ttl=600)  # Cache the data for 10 minutes
@@ -182,7 +182,7 @@ if not df.empty:
             )
     
     # Display total participants
-    st.markdown(f"<div class='total-participants'>👥 Total Champions: {len(df)}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='total-participants'>👥 Total Participants: {len(df)}</div>", unsafe_allow_html=True)
     
 else:
     st.error("No data loaded. Please check your Google Sheets connection.")
