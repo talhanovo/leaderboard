@@ -4,6 +4,8 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import matplotlib.pyplot as plt
 import seaborn as sns
+import json
+from google.oauth2 import service_account
 
 # Set page title
 st.title("Leaderboard")
@@ -12,8 +14,11 @@ st.title("Leaderboard")
 @st.cache_data(ttl=600)  # Cache the data for 10 minutes
 def fetch_data():
     # Set up Google Sheets API credentials
-    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('service_account_credentials.json', scope)
+    credentials_dict = json.loads(st.secrets["gcp_service_account"])
+    creds = service_account.Credentials.from_service_account_info(
+    credentials_dict, 
+    scopes=scope
+)
     client = gspread.authorize(creds)
     
     # Open the Google Sheet (replace with your sheet name)
