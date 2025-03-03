@@ -31,7 +31,7 @@ def fetch_data():
     
     try:
         # Open the Google Sheet (replace with your sheet name)
-        sheet = client.open('User Data').sheet1
+        sheet = client.open('UOA Leaderboard').sheet1
         
         # Get all data from the sheet
         data = sheet.get_all_records()
