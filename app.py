@@ -179,13 +179,13 @@ if not df.empty:
                     "Contests Participated": st.column_config.NumberColumn(
                         format="%d",
                     ),
-                    "Lineups Entered": st.column_config.NumberColumn(
+                    "Total Entries": st.column_config.NumberColumn(
                         format="%d",
                     ),
                     "Total Spent (FEED)": st.column_config.NumberColumn(
                         format="%.2f",
                     ),
-                    "Total Earned": st.column_config.NumberColumn(
+                    "Total Earned (FEED)": st.column_config.NumberColumn(
                         format="%.2f",
                     ),
                     "ROI": st.column_config.NumberColumn(
