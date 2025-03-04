@@ -154,9 +154,9 @@ if not df.empty:
         'rank_display': 'Rank',
         'username': 'Username',
         'contests_count_total': 'Contests Participated',
-        'lineups_count_total': 'Lineups Entered',
-        'feed_spent_total': 'Total Spent',
-        'feed_won_total': 'Total Earned',
+        'lineups_count_total': 'Total Entries',
+        'feed_spent_total': 'Total Spent (FEED)',
+        'feed_won_total': 'Total Earned' (FEED),
         'feed_won_to_spent_ratio': 'ROI'
     }
     
