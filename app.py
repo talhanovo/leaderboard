@@ -182,7 +182,7 @@ if not df.empty:
                     "Lineups Entered": st.column_config.NumberColumn(
                         format="%d",
                     ),
-                    "Total Spent": st.column_config.NumberColumn(
+                    "Total Spent (FEED)": st.column_config.NumberColumn(
                         format="%.2f",
                     ),
                     "Total Earned": st.column_config.NumberColumn(
