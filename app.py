@@ -125,6 +125,8 @@ df = fetch_data()
 if not df.empty:
     # Clean and prepare data
     df['feed_won_to_spent_ratio'] = pd.to_numeric(df['feed_won_to_spent_ratio'], errors='coerce')
+    df['feed_spent_total'] = pd.to_numeric(df['feed_spent_total'], errors='coerce')
+    df['feed_won_total'] = pd.to_numeric(df['feed_won_total'], errors='coerce')
     df['contests_count_total'] = pd.to_numeric(df['contests_count_total'], errors='coerce')
     df['lineups_count_total'] = pd.to_numeric(df['lineups_count_total'], errors='coerce')
     
@@ -146,12 +148,16 @@ if not df.empty:
     df['rank_display'] = df['rank'].apply(format_rank)
     
     # Select and rename columns for display
-    display_cols = ['rank_display', 'username', 'contests_count_total', 'lineups_count_total']
+    display_cols = ['rank_display', 'username', 'contests_count_total', 'lineups_count_total', 
+                    'feed_spent_total', 'feed_won_total', 'feed_won_to_spent_ratio']
     column_mapping = {
         'rank_display': 'Rank',
         'username': 'Username',
         'contests_count_total': 'Contests Participated',
-        'lineups_count_total': 'Lineups Entered'
+        'lineups_count_total': 'Lineups Entered',
+        'feed_spent_total': 'Total Spent',
+        'feed_won_total': 'Total Earned',
+        'feed_won_to_spent_ratio': 'ROI'
     }
     
     # Add a container with some padding
@@ -175,6 +181,15 @@ if not df.empty:
                     ),
                     "Lineups Entered": st.column_config.NumberColumn(
                         format="%d",
+                    ),
+                    "Total Spent": st.column_config.NumberColumn(
+                        format="%.2f",
+                    ),
+                    "Total Earned": st.column_config.NumberColumn(
+                        format="%.2f",
+                    ),
+                    "ROI": st.column_config.NumberColumn(
+                        format="%.2f",
                     )
                 },
                 use_container_width=True,
