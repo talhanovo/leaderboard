@@ -8,7 +8,7 @@ import numpy as np
 # Set page title and layout
 st.set_page_config(page_title="User Leaderboard", layout="wide")
 
-# Custom CSS styling
+# Custom CSS for styling
 st.markdown("""
 <style>
     .stApp {
@@ -77,19 +77,16 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Title
+# Page Title
 st.markdown('<div class="leaderboard-title">🏆 UOA LEADERBOARD 🏆</div>', unsafe_allow_html=True)
 
-# Fetch data function
+# Fetch data from Google Sheets
 @st.cache_data(ttl=600)
 def fetch_data():
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
     try:
         credentials_dict = json.loads(st.secrets["gcp_service_account"])
-        creds = service_account.Credentials.from_service_account_info(
-            credentials_dict,
-            scopes=scope
-        )
+        creds = service_account.Credentials.from_service_account_info(credentials_dict, scopes=scope)
     except Exception as e:
         st.error(f"Error loading credentials from secrets: {e}")
         st.info("If running locally, make sure to set up your .streamlit/secrets.toml file")
@@ -104,24 +101,27 @@ def fetch_data():
         st.error(f"Error fetching data from Google Sheets: {e}")
         return pd.DataFrame()
 
-# Load the data
+# Load and clean data
 df = fetch_data()
 
 if not df.empty:
-    # Convert numeric fields
+    # Convert relevant columns to numeric
     df['feed_spent_total'] = pd.to_numeric(df['feed_spent_total'], errors='coerce')
     df['feed_won_total'] = pd.to_numeric(df['feed_won_total'], errors='coerce')
     df['feed_won_to_spent_ratio'] = pd.to_numeric(df['feed_won_to_spent_ratio'], errors='coerce')
     df['contests_count_total'] = pd.to_numeric(df['contests_count_total'], errors='coerce')
     df['lineups_count_total'] = pd.to_numeric(df['lineups_count_total'], errors='coerce')
 
-    # Drop participants with missing ROI
+    # Drop users with missing ROI (optional)
     df = df.dropna(subset=['feed_won_to_spent_ratio'])
 
-    # Rank using 'first' to ensure all rows get unique rank
+    # Assign ranks using 'first' to keep order
     df['rank'] = df['feed_won_to_spent_ratio'].rank(ascending=False, method='first').astype(int)
 
-    # Format rank with medal emojis
+    # Sort by rank
+    df = df.sort_values('rank')
+
+    # Add medal icons
     def format_rank(rank):
         if rank == 1:
             return "🥇 1"
@@ -134,7 +134,7 @@ if not df.empty:
 
     df['rank_display'] = df['rank'].apply(format_rank)
 
-    # Select display columns
+    # Select and rename columns
     display_cols = ['rank_display', 'username', 'contests_count_total', 'lineups_count_total',
                     'feed_spent_total', 'feed_won_total', 'feed_won_to_spent_ratio']
     column_mapping = {
@@ -147,7 +147,7 @@ if not df.empty:
         'feed_won_to_spent_ratio': 'ROI'
     }
 
-    # Display leaderboard
+    # Display leaderboard table
     with st.container():
         col1, col2, col3 = st.columns([1, 10, 1])
         with col2:
@@ -160,14 +160,13 @@ if not df.empty:
                     "Total Entries": st.column_config.NumberColumn(format="%d"),
                     "Total Spent (FEED)": st.column_config.NumberColumn(format="%.2f"),
                     "Total Earned (FEED)": st.column_config.NumberColumn(format="%.2f"),
-                    "ROI": st.column_config.NumberColumn(format="%.2f"),
+                    "ROI": st.column_config.NumberColumn(format="%.2f")
                 },
                 use_container_width=True,
-                hide_index=True,
+                hide_index=True
             )
 
-    # Total participants shown
+    # Show total participants
     st.markdown(f"<div class='total-participants'>👥 Total Participants: {len(df)}</div>", unsafe_allow_html=True)
-
 else:
     st.error("No data loaded. Please check your Google Sheets connection.")
