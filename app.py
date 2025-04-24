@@ -5,10 +5,10 @@ import json
 from google.oauth2 import service_account
 import numpy as np
 
-# Set page title and app styling
+# Set page title and layout
 st.set_page_config(page_title="User Leaderboard", layout="wide")
 
-# Custom CSS for better styling - creating a more game-like leaderboard
+# Custom CSS styling
 st.markdown("""
 <style>
     .stApp {
@@ -24,13 +24,12 @@ st.markdown("""
         text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
     }
     .total-participants {
-        text-align: center; 
+        text-align: center;
         margin-top: 30px;
         color: #8ecae6;
         font-size: 1.5rem;
         font-weight: bold;
     }
-    /* Custom styling for the table */
     [data-testid="stDataFrame"] {
         background: rgba(13, 27, 42, 0.7);
         border-radius: 15px;
@@ -41,7 +40,6 @@ st.markdown("""
     [data-testid="stDataFrame"] > div {
         border: none !important;
     }
-    /* Style the header row */
     [data-testid="stDataFrame"] th {
         background-color: #1d3557 !important;
         color: white !important;
@@ -50,7 +48,6 @@ st.markdown("""
         padding: 12px 8px !important;
         border-bottom: 2px solid #457b9d !important;
     }
-    /* Style the data cells */
     [data-testid="stDataFrame"] tbody tr {
         border-bottom: 1px solid rgba(69, 123, 157, 0.2) !important;
         transition: background-color 0.2s ease;
@@ -58,7 +55,6 @@ st.markdown("""
     [data-testid="stDataFrame"] tbody tr:hover {
         background-color: rgba(69, 123, 157, 0.2) !important;
     }
-    /* Top 3 styling */
     [data-testid="stDataFrame"] tbody tr:nth-child(1) td:first-child {
         background-color: gold !important;
         color: black !important;
@@ -74,7 +70,6 @@ st.markdown("""
         color: black !important;
         font-weight: bold !important;
     }
-    /* Center text in cells */
     [data-testid="stDataFrame"] td {
         text-align: center !important;
         padding: 12px 8px !important;
@@ -82,59 +77,51 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Title with custom styling
+# Title
 st.markdown('<div class="leaderboard-title">🏆 UOA LEADERBOARD 🏆</div>', unsafe_allow_html=True)
 
-# Function to fetch data from Google Sheets
-@st.cache_data(ttl=600)  # Cache the data for 10 minutes
+# Fetch data function
+@st.cache_data(ttl=600)
 def fetch_data():
-    # Set up Google Sheets API credentials from secrets
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-    
     try:
-        # Get credentials from Streamlit secrets
         credentials_dict = json.loads(st.secrets["gcp_service_account"])
         creds = service_account.Credentials.from_service_account_info(
-            credentials_dict, 
+            credentials_dict,
             scopes=scope
         )
     except Exception as e:
         st.error(f"Error loading credentials from secrets: {e}")
         st.info("If running locally, make sure to set up your .streamlit/secrets.toml file")
         return pd.DataFrame()
-    
-    client = gspread.authorize(creds)
-    
+
     try:
-        # Open the Google Sheet
+        client = gspread.authorize(creds)
         sheet = client.open('UOA Leaderboard').sheet1
-        
-        # Get all data from the sheet
         data = sheet.get_all_records()
-        
-        # Convert to DataFrame
-        df = pd.DataFrame(data)
-        return df
+        return pd.DataFrame(data)
     except Exception as e:
         st.error(f"Error fetching data from Google Sheets: {e}")
         return pd.DataFrame()
 
-# Try to fetch data
+# Load the data
 df = fetch_data()
 
 if not df.empty:
-    # Clean and prepare data
-    df['feed_won_to_spent_ratio'] = pd.to_numeric(df['feed_won_to_spent_ratio'], errors='coerce')
+    # Convert numeric fields
     df['feed_spent_total'] = pd.to_numeric(df['feed_spent_total'], errors='coerce')
     df['feed_won_total'] = pd.to_numeric(df['feed_won_total'], errors='coerce')
+    df['feed_won_to_spent_ratio'] = pd.to_numeric(df['feed_won_to_spent_ratio'], errors='coerce')
     df['contests_count_total'] = pd.to_numeric(df['contests_count_total'], errors='coerce')
     df['lineups_count_total'] = pd.to_numeric(df['lineups_count_total'], errors='coerce')
-    
-    # Calculate rank based on ratio and sort
-    df['rank'] = df['feed_won_to_spent_ratio'].rank(ascending=False, method='dense').astype(int)
-    df = df.sort_values('feed_won_to_spent_ratio', ascending=False)
-    
-    # Add medal icons for top 3 ranks
+
+    # Drop participants with missing ROI
+    df = df.dropna(subset=['feed_won_to_spent_ratio'])
+
+    # Rank using 'first' to ensure all rows get unique rank
+    df['rank'] = df['feed_won_to_spent_ratio'].rank(ascending=False, method='first').astype(int)
+
+    # Format rank with medal emojis
     def format_rank(rank):
         if rank == 1:
             return "🥇 1"
@@ -144,11 +131,11 @@ if not df.empty:
             return "🥉 3"
         else:
             return str(rank)
-    
+
     df['rank_display'] = df['rank'].apply(format_rank)
-    
-    # Select and rename columns for display
-    display_cols = ['rank_display', 'username', 'contests_count_total', 'lineups_count_total', 
+
+    # Select display columns
+    display_cols = ['rank_display', 'username', 'contests_count_total', 'lineups_count_total',
                     'feed_spent_total', 'feed_won_total', 'feed_won_to_spent_ratio']
     column_mapping = {
         'rank_display': 'Rank',
@@ -159,45 +146,28 @@ if not df.empty:
         'feed_won_total': 'Total Earned (FEED)',
         'feed_won_to_spent_ratio': 'ROI'
     }
-    
-    # Add a container with some padding
+
+    # Display leaderboard
     with st.container():
-        # Create three columns with the middle one wider for the dataframe
         col1, col2, col3 = st.columns([1, 10, 1])
-        
         with col2:
-            # Display the full leaderboard
             st.dataframe(
                 df[display_cols].rename(columns=column_mapping),
                 column_config={
-                    "Rank": st.column_config.TextColumn(
-                        width="small",
-                    ),
-                    "Username": st.column_config.TextColumn(
-                        width="medium",
-                    ),
-                    "Contests Participated": st.column_config.NumberColumn(
-                        format="%d",
-                    ),
-                    "Total Entries": st.column_config.NumberColumn(
-                        format="%d",
-                    ),
-                    "Total Spent (FEED)": st.column_config.NumberColumn(
-                        format="%.2f",
-                    ),
-                    "Total Earned (FEED)": st.column_config.NumberColumn(
-                        format="%.2f",
-                    ),
-                    "ROI": st.column_config.NumberColumn(
-                        format="%.2f",
-                    )
+                    "Rank": st.column_config.TextColumn(width="small"),
+                    "Username": st.column_config.TextColumn(width="medium"),
+                    "Contests Participated": st.column_config.NumberColumn(format="%d"),
+                    "Total Entries": st.column_config.NumberColumn(format="%d"),
+                    "Total Spent (FEED)": st.column_config.NumberColumn(format="%.2f"),
+                    "Total Earned (FEED)": st.column_config.NumberColumn(format="%.2f"),
+                    "ROI": st.column_config.NumberColumn(format="%.2f"),
                 },
                 use_container_width=True,
                 hide_index=True,
             )
-    
-    # Display total participants
+
+    # Total participants shown
     st.markdown(f"<div class='total-participants'>👥 Total Participants: {len(df)}</div>", unsafe_allow_html=True)
-    
+
 else:
     st.error("No data loaded. Please check your Google Sheets connection.")
